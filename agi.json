@@ -1,0 +1,286 @@
+{
+    "name": "My workflow 6",
+    "nodes": [
+      {
+        "parameters": {
+          "requestMethod": "POST",
+          "url": "https://agi-hn1zyko.svc.aped-4627-b74a.pinecone.io",
+          "options": {}
+        },
+        "id": "19577709-a6ce-48ed-b7a7-d18a1057ec7a",
+        "name": "Recherche Mémoire",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 1,
+        "position": [
+          -360,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ $('Telegram Trigger').item.json.message.text }}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "id": "474e2aa6-6c88-495a-9e87-f7468ed9dd69",
+        "name": "Vérifier Correspondances",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [
+          -160,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "model": "o4-mini",
+          "prompt": "=Tu es Orion, un assistant curieux, bienveillant et légèrement sarcastique. Voici le message utilisateur : {{ $('Telegram Trigger').item.json.message.text }}. Réponds-lui avec ton style. ",
+          "options": {},
+          "requestOptions": {}
+        },
+        "id": "58aa6d4d-9c53-4e92-96aa-6f2b822cb369",
+        "name": "Réponse Initiale",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [
+          60,
+          140
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "JR4acWZcTMM8QZwZ",
+            "name": "OpenAi account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": "o4-mini",
+          "prompt": "Tu es Orion, un assistant curieux, bienveillant et légèrement sarcastique. Tu te souviens des faits suivants : {{$json[\"matches\"]}}. Voici le message utilisateur : {{$node[\"Webhook Entrée\"].json[\"message\"]}}. Réponds-lui avec ton style.",
+          "options": {},
+          "requestOptions": {}
+        },
+        "id": "7f514e6d-1054-4552-84c1-0f5ee4b34bff",
+        "name": "Génère Réponse",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [
+          60,
+          -20
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "JR4acWZcTMM8QZwZ",
+            "name": "OpenAi account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "requestMethod": "POST",
+          "url": "https://your-pinecone-endpoint/vectors/upsert",
+          "jsonParameters": true,
+          "options": {},
+          "bodyParametersJson": {
+            "vectors": [
+              {
+                "id": "int-{{$timestamp}}",
+                "values": "{{$node[\"OpenAI_Summary\"].json[\"choices\"][0][\"text\"] | vectorize}}",
+                "metadata": {
+                  "summary": "{{$node[\"OpenAI_Summary\"].json[\"choices\"][0][\"text\"]}}",
+                  "timestamp": "{{$now}}"
+                }
+              }
+            ]
+          }
+        },
+        "id": "c7c7ec92-c140-4f98-9dfa-5dec9df0be7e",
+        "name": "Sauvegarde dans Pinecone",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 1,
+        "position": [
+          300,
+          140
+        ]
+      },
+      {
+        "parameters": {
+          "chatId": "ee",
+          "text": "e",
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          540,
+          140
+        ],
+        "id": "16ee560d-b9fb-4b82-ac6d-871095168d70",
+        "name": "Telegram",
+        "webhookId": "313de095-8b06-4b8e-8f04-ffebe1f25041",
+        "credentials": {
+          "telegramApi": {
+            "id": "l6SGVI94oGHFzcJo",
+            "name": "Telegram account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "updates": [
+            "message"
+          ],
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -800,
+          0
+        ],
+        "id": "746bb5f1-7924-41b1-88e1-88f5a4c14c59",
+        "name": "Telegram Trigger",
+        "webhookId": "1f8826b0-7494-4620-8dbd-6f1925e109cd",
+        "credentials": {
+          "telegramApi": {
+            "id": "l6SGVI94oGHFzcJo",
+            "name": "Telegram account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "value": "o4-mini",
+            "mode": "list",
+            "cachedResultName": "O4-MINI"
+          },
+          "messages": {
+            "values": [
+              {
+                "content": "=Résume en une phrase {{ $json.message.text }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "typeVersion": 1.8,
+        "position": [
+          -660,
+          0
+        ],
+        "id": "e58311c1-ad6b-413b-92da-97d612fdfcbf",
+        "name": "OpenAI",
+        "credentials": {
+          "openAiApi": {
+            "id": "QWbUE6NpYoPix4sL",
+            "name": "OpenAi account 2"
+          }
+        }
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Recherche Mémoire": {
+        "main": [
+          [
+            {
+              "node": "Vérifier Correspondances",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Vérifier Correspondances": {
+        "main": [
+          [
+            {
+              "node": "Génère Réponse",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Réponse Initiale",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Réponse Initiale": {
+        "main": [
+          [
+            {
+              "node": "Sauvegarde dans Pinecone",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "OpenAI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI": {
+        "main": [
+          [
+            {
+              "node": "Recherche Mémoire",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Génère Réponse": {
+        "main": [
+          [
+            {
+              "node": "Sauvegarde dans Pinecone",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sauvegarde dans Pinecone": {
+        "main": [
+          [
+            {
+              "node": "Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "68062b8a-e7cd-4aa7-8da9-d1fdfcd57bd2",
+    "meta": {
+      "instanceId": "844326358c172839d687733e2f8c7762d3f182c6df87618dc871a2c99391b140"
+    },
+    "id": "AgJNV9xh4WLTKpYx",
+    "tags": []
+  }

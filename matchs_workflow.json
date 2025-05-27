@@ -1,0 +1,212 @@
+{
+    "name": "My workflow 3",
+    "nodes": [
+      {
+        "parameters": {
+          "updates": [
+            "message"
+          ],
+          "additionalFields": {
+            "filters": {
+              "commands": [
+                "/matchs"
+              ]
+            }
+          }
+        },
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1,
+        "position": [
+          2000,
+          360
+        ],
+        "id": "0741aa62-d407-41ce-b87c-5c9f535b3b5a",
+        "webhookId": "a83c716c-1d78-4a0e-aedf-bf5c56bd8891",
+        "credentials": {
+          "telegramApi": {
+            "id": "l6SGVI94oGHFzcJo",
+            "name": "Telegram account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "url": "https://api-football-v1.p.rapidapi.com/v3/fixtures",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "date",
+                "value": "={{ $now.format('YYYY-MM-DD') }}"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-rapidapi-host",
+                "value": "api-football-v1.p.rapidapi.com"
+              },
+              {
+                "name": "x-rapidapi-key",
+                "value": "d81ad70bc7msh8a30e49c50a2fd7p1f799bjsn4dae900facce"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "name": "Get Today's Matches",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          2200,
+          360
+        ],
+        "id": "a0bd8b4f-322b-4418-bb6c-91ca0b5232a8"
+      },
+      {
+        "parameters": {
+          "functionCode": "// Check if the response is valid\nif (!$input.item.json.response || !Array.isArray($input.item.json.response)) {\n  return {json: {error: 'Aucun match trouvé ou format de réponse invalide'}};\n}\n\n// Get the first 3 matches\nconst matches = $input.item.json.response.slice(0, 3);\n\n// Format matches into prompts\nconst prompts = matches.map(match => {\n  try {\n    // Extract team names from the teams object\n    // Since the response has teams as a string like @{home=; away=}\n    // We need to handle this differently\n    \n    // Create a safer accessor for nested properties\n    const getNestedValue = (obj, path) => {\n      if (!obj) return null;\n      // If the property is a string that looks like @{...}\n      if (typeof obj === 'string' && obj.startsWith('@{')) {\n        // Try to extract values from the string format\n        const keyValuePairs = obj.substring(2, obj.length - 1).split('; ');\n        const extractedObj = {};\n        keyValuePairs.forEach(pair => {\n          if (pair.includes('=')) {\n            const [key, value] = pair.split('=');\n            extractedObj[key] = value || null;\n          }\n        });\n        return extractedObj;\n      }\n      \n      // Handle normal JSON objects\n      if (typeof obj === 'object') {\n        return path.split('.').reduce((o, k) => (o || {})[k], obj) || null;\n      }\n      \n      return null;\n    };\n    \n    // Extract home and away team names\n    let homeTeam = 'Équipe à domicile';\n    let awayTeam = 'Équipe à l\\'extérieur';\n    \n    // Try to get from teams object directly if it's a proper JSON object\n    if (match.teams && typeof match.teams === 'object') {\n      if (match.teams.home && match.teams.home.name) {\n        homeTeam = match.teams.home.name;\n      }\n      if (match.teams.away && match.teams.away.name) {\n        awayTeam = match.teams.away.name;\n      }\n    } \n    // If teams is a string like @{home=; away=}\n    else if (typeof match.teams === 'string') {\n      const teamsObj = getNestedValue(match.teams);\n      if (teamsObj && teamsObj.home) {\n        homeTeam = teamsObj.home || homeTeam;\n      }\n      if (teamsObj && teamsObj.away) {\n        awayTeam = teamsObj.away || awayTeam;\n      }\n    }\n    \n    // Extract match date\n    let matchDate = 'aujourd\\'hui';\n    if (match.fixture) {\n      const fixtureData = getNestedValue(match.fixture);\n      if (fixtureData && fixtureData.date) {\n        matchDate = fixtureData.date;\n      }\n    }\n    \n    return {\n      home: homeTeam,\n      away: awayTeam,\n      date: matchDate,\n      prompt: `Qui va gagner entre ${homeTeam} et ${awayTeam} ce soir ?`\n    };\n  } catch (error) {\n    // Return a default object if there's an error processing this match\n    return {\n      home: 'Équipe inconnue',\n      away: 'Équipe inconnue',\n      date: 'aujourd\\'hui',\n      prompt: 'Qui va gagner le match ce soir ?',\n      error: error.message\n    };\n  }\n});\n\n// Add some debugging information\nconst result = {\n  json: prompts,\n  matchesCount: matches.length,\n  promptsCount: prompts.length\n};\n\nreturn result;"
+        },
+        "name": "Format Prompts",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [
+          2400,
+          360
+        ],
+        "id": "28cbc4f7-a2db-4a4f-b66a-b990e054da25"
+      },
+      {
+        "parameters": {
+          "model": "o4-mini",
+          "operation": "completion",
+          "prompt": "={{ $json.prompt }}",
+          "options": {
+            "maxTokens": 150,
+            "temperature": 0.7
+          },
+          "requestOptions": {}
+        },
+        "name": "Generate Predictions",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [
+          2600,
+          360
+        ],
+        "id": "b92bc308-a4fe-48a4-943e-315ab2754383",
+        "credentials": {
+          "openAiApi": {
+            "id": "JR4acWZcTMM8QZwZ",
+            "name": "OpenAi account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "functionCode": "// Format the predictions into the desired JSON structure\nconst items = $input.all();\n\n// Add debug information\nconsole.log('Items from OpenAI:', JSON.stringify(items, null, 2));\n\nconst predictions = items.map(item => {\n  try {\n    // Handle possible different formats from OpenAI\n    let prediction = '';\n    \n    // Check if we have a text property directly\n    if (item.json && typeof item.json.text === 'string') {\n      prediction = item.json.text;\n    } \n    // Check if we have a content property (newer OpenAI API versions)\n    else if (item.json && item.json.choices && item.json.choices[0] && item.json.choices[0].message) {\n      prediction = item.json.choices[0].message.content;\n    }\n    // Fallback to using the entire json as text if it's a string\n    else if (typeof item.json === 'string') {\n      prediction = item.json;\n    }\n    // Last resort fallback\n    else {\n      prediction = 'Pas de prédiction disponible';\n    }\n    \n    return {\n      home: item.json.home || 'Équipe à domicile',\n      away: item.json.away || 'Équipe à l\\'extérieur',\n      date: item.json.date || 'aujourd\\'hui',\n      prediction: prediction\n    };\n  } catch (error) {\n    // Return a default object if there's an error\n    console.log('Error in Format Results:', error.message);\n    return {\n      home: 'Équipe inconnue',\n      away: 'Équipe inconnue',\n      date: 'aujourd\\'hui',\n      prediction: 'Pas de prédiction disponible',\n      error: error.message\n    };\n  }\n});\n\n// Make sure we have at least one prediction\nif (predictions.length === 0) {\n  predictions.push({\n    home: 'Équipe à domicile',\n    away: 'Équipe à l\\'extérieur',\n    date: 'aujourd\\'hui',\n    prediction: 'Aucun match trouvé pour aujourd\\'hui'\n  });\n}\n\nreturn {json: predictions};"
+        },
+        "name": "Format Results",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [
+          2800,
+          360
+        ],
+        "id": "3195a8a4-5e14-4234-807d-089a4daf96ec"
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"] }}",
+          "text": "={{ $json[0].home + ' vs ' + $json[0].away + ' - ' + $json[0].prediction }}",
+          "additionalFields": { "parse_mode": "" }
+        },
+        "name": "Send Telegram Message",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1,
+        "position": [
+          3000,
+          360
+        ],
+        "id": "1333aaa2-8303-4df7-b18f-b9bd856ac2ae",
+        "credentials": {
+          "telegramApi": {
+            "id": "l6SGVI94oGHFzcJo",
+            "name": "Telegram account"
+          }
+        }
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Today's Matches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Today's Matches": {
+        "main": [
+          [
+            {
+              "node": "Format Prompts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Prompts": {
+        "main": [
+          [
+            {
+              "node": "Generate Predictions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Predictions": {
+        "main": [
+          [
+            {
+              "node": "Format Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Results": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "30209ac5-62e0-437e-acd0-c906059bdcd5",
+    "meta": {
+      "templateCredsSetupCompleted": true,
+      "instanceId": "844326358c172839d687733e2f8c7762d3f182c6df87618dc871a2c99391b140"
+    },
+    "id": "YQNXLqDYtiIoasnb",
+    "tags": []
+  }

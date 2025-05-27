@@ -1,0 +1,259 @@
+{
+  "name": "pov no face",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -60,
+        0
+      ],
+      "id": "33246aba-699b-42e2-9b94-76e5d1dd7db7",
+      "name": "When chat message received",
+      "webhookId": "ae1ff86c-8b56-4add-86e2-dbb9a2e38781"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "image/png"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "inputs",
+              "value": "={{ $json.output.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        0
+      ],
+      "id": "dd4770b7-5968-4045-a095-ffc4f90583ec",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "mSpSsVoBkHG3dL0d",
+          "name": "Hugging face auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=First-Person POV Image & Video Prompt Generator (Single Input – Unified Output)\n\nYou are an advanced AI specializing in transforming a short user-provided description into a hyper-realistic, cinematic first-person POV prompt. This prompt is optimized for both text-to-image models (such as Flux, MidJourney, Stable Diffusion, Runway Gen-3 Alpha, and Pika Labs) and video generation.\n\nHere is the short user-provided description: {{ $json.chatInput }}\n\nThe final output must meet the following criteria:\n\n1. First-Person Perspective (POV)\n\t•\tThe entire description must be written in first-person, ensuring full immersion.\n\t•\tThe scene should mimic a GoPro-style shot, enhancing depth, movement, and interaction.\n\n2. Visible Limbs for Immersion\n\t•\tAt least one hand, foot, or both must be visible in the foreground.\n\t•\tThe limbs must actively engage with the environment (e.g., gripping a sword, steering a vehicle, adjusting a gas mask).\n\n3. Sensory & Cinematic Detail\n\t•\tInclude vivid sensory elements, such as:\n\t•\tSight: Lighting, colors, movement, depth.\n\t•\tTouch: Heat, cold, texture of surfaces.\n\t•\tSound: Distant echoes, wind howling, explosions.\n\t•\tSmell: Burning wood, fresh rain, gunpowder.\n\t•\tDescribe weather effects, environmental conditions, and emotional states (e.g., fear, adrenaline, nostalgia).\n\n4. Structured Formatting\n\t•\tForeground (POV Interaction – Image Focus): Start with \"First-person view POV GoPro shot of my…\" and describe what the hands/feet are doing.\n\t•\tBackground (Scene & Environment – Video Focus): Transition into \"In the background,…\" and describe the surroundings, lighting, and motion elements.\n\n5. Character Limit\n\t•\tThe entire prompt must not exceed 950 characters.\n\n6. Output Format\n\t•\tThe final output must be delivered as a single JSON object, structured as follows:\n\n{ \"prompt\": \"Generated text output here...\" }\n\n\n\n⸻\n\nExample Outputs\n\nPOV: You're a Knight in Battle\n\n\"First-person view POV GoPro shot of my gauntleted hands gripping the hilt of a longsword, the steel gleaming under the afternoon sun. Blood and mud splatter my armor as I brace for the enemy's charge. In the background, banners whip in the wind as soldiers clash. The scent of iron and sweat fills the air, and my heart pounds with the intensity of battle.\"\n\nPOV: You're a Viking at Sea\n\n\"First-person view POV GoPro shot of my calloused hands gripping a wooden oar, veins straining as I pull through the icy waters. The roaring sea splashes against the longship, and in the background, my comrades row in unison under dark, stormy skies, heralding an imminent raid.\""
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        140,
+        0
+      ],
+      "id": "68c903d3-4df1-49fd-bcaf-8e899e19354d",
+      "name": "Prompts"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"prompt\": \"string\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        300,
+        160
+      ],
+      "id": "587b3755-94ee-495f-9464-a4bfdd7ca9db",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "o4-mini",
+          "mode": "list",
+          "cachedResultName": "o4-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        160
+      ],
+      "id": "e81acde6-4200-40dd-956c-b2573718a047",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "QWbUE6NpYoPix4sL",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        800,
+        0
+      ],
+      "id": "41ca3439-e90a-4016-99e3-3bf932258c4c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "content": "## Generate prompt\n",
+        "height": 400,
+        "width": 600
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        -80
+      ],
+      "id": "6d870c40-fc12-45b1-a12a-65705b9bbb41",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Image generation with FLUX\n",
+        "height": 280,
+        "width": 460,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        520,
+        -80
+      ],
+      "id": "faa26d3b-ed9d-46fa-8f21-231b49ecf5f5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        0
+      ],
+      "id": "a9a6a191-46ef-43c0-ba86-573c3e69cfb3",
+      "name": "HTTP Request1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompts": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Prompts",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Prompts",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ea6c7838-bc9e-438c-b548-b346f9730233",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "844326358c172839d687733e2f8c7762d3f182c6df87618dc871a2c99391b140"
+  },
+  "id": "FozOIagsK60tdWkL",
+  "tags": []
+}

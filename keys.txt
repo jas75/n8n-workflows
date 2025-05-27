@@ -1,0 +1,5 @@
+OPENAI API KEY projetc agi
+sk-proj-cJA6IgYIY04AM9UH2AAhHNxEh-_kka1_N1_-P4joSHOOyAYFdav9H0p5-DKz2YxJQSU8Ydj-
+
+Pinecone api key 
+pcsk_5SfcUy_AuGHjcw78w2DggodmfiF3cLN6AdGSsvV73Tf3Ecr44pxdgmJjKUotRiHq5y7WTY
